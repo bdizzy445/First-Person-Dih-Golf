@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Disc Golf Game Menu</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<h1>Welcome to Disc Golf!</h1>
+
+<h2>Select Your Course</h2>
+<ul>
+  <li><button onclick="startGame('forest')">Forest Course</button></li>
+  <li><button onclick="startGame('mountain')">Mountain Course</button></li>
+</ul>
+
+<h2>Select Your Default Disc</h2>
+<select id="discSelect">
+  <option value="Innova Destroyer">Driver - Innova Destroyer</option>
+  <option value="Discraft Zeus">Driver - Discraft Zeus</option>
+  <option value="Innova Roc">Midrange - Innova Roc</option>
+  <option value="Discraft Buzzz">Midrange - Discraft Buzzz</option>
+  <option value="Innova Aviar">Putter - Innova Aviar</option>
+  <option value="Discraft Luna">Putter - Discraft Luna</option>
+</select>
+
+<h2>Select Default Throw Type</h2>
+<select id="throwSelect">
+  <option value="backhand">Backhand</option>
+  <option value="forehand">Forehand</option>
+  <option value="hyzer">Hyzer</option>
+  <option value="anhyzer">Anhyzer</option>
+  <option value="roller">Roller</option>
+</select>
+
+<br><br>
+<button onclick="launchGame()">Start Game</button>
+
+<script>
+function launchGame(){
+  const disc = document.getElementById('discSelect').value;
+  const throwType = document.getElementById('throwSelect').value;
+  const courseForest = document.querySelector('button[onclick*="forest"]');
+  const courseMountain = document.querySelector('button[onclick*="mountain"]');
+  let course = courseForest ? 'forest' : 'mountain';
+  
+  // Check which button is clicked
+  document.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const course = btn.textContent.includes('Forest') ? 'forest' : 'mountain';
+      window.location.href=`game.html?course=${course}&disc=${disc}&throw=${throwType}`;
+    });
+  });
+}
+launchGame();
+</script>
+</body>
+</html>
