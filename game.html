@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Disc Golf Game</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="shotMenu">
+<h2>Choose Your Shot</h2>
+
+<label>Disc:</label>
+<select id="discSelectMenu">
+  <option value="Innova Destroyer">Driver - Innova Destroyer</option>
+  <option value="Discraft Zeus">Driver - Discraft Zeus</option>
+  <option value="Innova Roc">Midrange - Innova Roc</option>
+  <option value="Discraft Buzzz">Midrange - Discraft Buzzz</option>
+  <option value="Innova Aviar">Putter - Innova Aviar</option>
+  <option value="Discraft Luna">Putter - Discraft Luna</option>
+</select>
+
+<label>Throw Type:</label>
+<select id="throwSelectMenu">
+  <option value="backhand">Backhand</option>
+  <option value="forehand">Forehand</option>
+  <option value="hyzer">Hyzer</option>
+  <option value="anhyzer">Anhyzer</option>
+  <option value="roller">Roller</option>
+</select>
+
+<label>Power:</label>
+<input type="range" id="powerRange" min="0" max="1" step="0.01" value="0.8">
+<span id="powerLabel">80%</span>
+
+<br><br>
+<button onclick="startThrow()">Throw!</button>
+</div>
+
+<div id="info" style="position:absolute;top:10px;left:10px;color:white;z-index:10;"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
+<script>
+// --- Parse URL params ---
+const params = new URLSearchParams(window.location.search);
+let courseName = params.get('course') || 'forest';
+let defaultDisc = params.get('disc') || 'Innova Destroyer';
+let defaultThrow = params.get('throw') || 'backhand';
+
+// --- Disc Stats ---
+const discStatsMap = {
+  "Innova Destroyer": {min:150,max:200},
+  "Discraft Zeus": {min:150,max:200},
+  "Innova Roc": {min:90,max:130},
+  "Discraft Buzzz": {min:90,max:130},
+  "Innova Aviar": {min:5,max:70},
+  "Discraft Luna": {min:5,max:70}
+};
+
+// --- Course Definition ---
+const courses = {
+  "forest":[
+    {name:"Hole 1",distance:120,par:3,x:0,z:-120},
+    {name:"Hole 2",distance:200,par:4,x:20,z:-320},
+    {name:"Hole 3",distance:300,par:5,x:-20,z:-620},
+    {name:"Hole 4",distance:140,par:3,x:15,z:-760},
+    {name:"Hole 5",distance:220,par:4,x:-15,z:-980},
+    {name:"Hole 6",distance:320,par:5,x:5,z:-1300},
+    {name:"Hole 7",distance:150,par:3,x:-10,z:-1450},
+    {name:"Hole 8",distance:250,par:4,x:20,z:-1700},
+    {name:"Hole 9",distance:350,par:5,x:0,z:-2050}
+  ],
+  "mountain":[
+    {name:"Hole 1",distance:130,par:3,x:0,z:-130},
+    {name:"Hole 2",distance:220,par:4,x:15,z:-350},
+    {name:"Hole 3",distance:310,par:5,x:-20,z:-660},
+    {name:"Hole 4",distance:160,par:3,x:10,z:-820},
+    {name:"Hole 5",distance:240,par:4,x:-15,z:-1060},
+    {name:"Hole 6",distance:330,par:5,x:5,z:-1390},
+    {name:"Hole 7",distance:180,par:3,x:-10,z:-1570},
+    {name:"Hole 8",distance:260,par:4,x:20,z:-1830},
+    {name:"Hole 9",distance:360,par:5,x:0,z:-2190}
+  ]
+};
+
+let holes = courses[courseName];
+
+// --- Three.js Setup ---
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x58b368);
+const camera = new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1,5000);
+camera.position.set(0,5,20);
+camera.lookAt(0,0,0);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth,window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const light = new THREE.DirectionalLight(0xffffff,1);
+light.position.set(50,50,50);
+scene.add(light);
+
+// Ground
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(5000,5000,50,50), new THREE.MeshPhongMaterial({color:0x7ac37d}));
+ground.rotation.x=-Math.PI/2;
+scene.add(ground);
+
+// Tee boxes
+holes.forEach(h=>{
+  const tee = new THREE.Mesh(new THREE.BoxGeometry(2,0.1,2), new THREE.MeshPhongMaterial({color:0x964B00}));
+  tee.position.set(h.x,0.05,h.z-10);
+  scene.add(tee);
+});
+
+// Holes
