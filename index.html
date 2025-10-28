@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>First-Person Disc Golf</title>
+<style>
+body { margin:0; overflow:hidden; background:#58b368; font-family:sans-serif; }
+#info { position:absolute; top:10px; left:10px; color:white; z-index:10; font-size:16px; }
+</style>
+</head>
+<body>
+<div id="info"></div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
+<script>
+
+// ---- Read URL parameters ----
+const params = new URLSearchParams(window.location.search);
+const discName = params.get('disc') || 'Innova Destroyer';
+const courseNum = params.get('course') || '1';
+const throwType = params.get('throw') || 'backhand';
+
+// ---- Disc flight stats ----
+const discs = {
+  "Innova Destroyer": {speed:14, glide:5, turn:-1, fade:3},
+  "Discraft Zeus": {speed:13, glide:5, turn:-2, fade:3},
+  "Innova Roc": {speed:7, glide:4, turn:0, fade:2},
+  "Discraft Buzzz": {speed:6, glide:4, turn:0, fade:1},
+  "Innova Aviar": {speed:3, glide:2, turn:0, fade:1},
+  "Discraft Luna": {speed:2.5, glide:2, turn:0, fade:1}
+};
+
+let discStats = discs[discName];
+
+// ---- Define Courses ----
+const course1Holes = [
+  {name:"Hole 1", distance:120, par:3, x:0,z:-120},{name:"Hole 2", distance:200, par:4, x:10,z:-320},
+  {name:"Hole 3", distance:300, par:5, x:-20,z:-620},{name:"Hole 4", distance:140, par:3, x:15,z:-760},
+  {name:"Hole 5", distance:220, par:4, x:-15,z:-980},{name:"Hole 6", distance:320, par:5, x:5,z:-1300},
+  {name:"Hole 7", distance:150, par:3, x:-10,z:-1450},{name:"Hole 8", distance:250, par:4, x:20,z:-1700},
+  {name:"Hole 9", distance:350, par:5, x:0,z:-2050}
+];
+
+const course2Holes = [
+  {name:"Hole 1", distance:130, par:3, x:0,z:-130},{name:"Hole 2", distance:220, par:4, x:15,z:-350},
+  {name:"Hole 3", distance:310, par:5, x:-20,z:-660},{name:"Hole 4", distance:160, par:3, x:10,z:-820},
+  {name:"Hole 5", distance:240, par:4, x:-15,z:-1060},{name:"Hole 6", distance:330, par:5, x:5,z:-1390},
+  {name:"Hole 7", distance:180, par:3, x:-10,z:-1570},{name:"Hole 8", distance:260, par:4, x:20,z:-1830},
+  {name:"Hole 9", distance:360, par:5, x:0,z:-2190}
+];
+
+let holes = courseNum==='1'? course1Holes : course2Holes;
+
+// ---- THREE.js Setup ----
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x58b368);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 5000);
+camera.position.set(0,5,20);
+camera.lookAt(0,0,0);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+const light = new THREE.DirectionalLight(0xffffff,1);
+light.position.set(50,50,50); scene.add(light);
+
+// Ground
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(5000,5000), new THREE.MeshPhongMaterial({color:0x7ac37d}));
+ground.rotation.x=-Math.PI/2; scene.add(ground);
+
+// Disc
+const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,0.1,32), new THREE.MeshPhongMaterial({color:0xffffff}));
+disc.position.set(0,0.1,0); scene.add(disc);
+
+// Holes
+holes.forEach(h=>{
+  const holeMesh = new THREE.Mesh(new THREE.CylinderGeometry(1,1,0.2,32), new THREE.MeshPhongMaterial({color:0x8b4513}));
+  holeMesh.position.set(h.x,0.1,h.z);
+  h.mesh = holeMesh;
+  scene.add(holeMesh);
+});
+
+// Game variables
+let currentHole=0, throws=0, totalScore=0;
+let velocity = new THREE.Vector3(), throwing=false;
+let mouseDown=false, startX, startY;
+
+// ---- Mouse/Touch Controls ----
+window.addEventListener('mousedown', e=>{ mouseDown=true; startX=e.clientX; startY=e.clientY; });
+window.addEventListener('mouseup', e=>{
+  if(mouseDown){
+    let dx=e.clientX-startX;
+    let dz=startY-e.clientY;
+    let modifier = 1;
+    if(throwType==='forehand') modifier=0.9;
+    else if(throwType==='hyzer') modifier=0.8;
+    else if(throwType==='anhyzer') modifier=1.1;
+    else if(throwType==='roller') modifier=1.2;
+    velocity.set(dx*0.05*discStats.speed*modifier,2,dz*0.05*discStats.speed*modifier);
+    throwing=true; throws++;
+  }
+  mouseDown=false;
+});
+
+// ---- Animate ----
+function animate(){
+  requestAnimationFrame(animate);
+
+  if(throwing){
+    disc.position.add(velocity.clone().multiplyScalar(0.1));
+    velocity.y -= 0.05;
+    if(disc.position.y<0.1){ disc.position.y=0.1; velocity.multiplyScalar(0.8); if(velocity.length()<0.01) throwing=false; }
+    let h = holes[currentHole];
+    let distHole = new THREE.Vector3(h.x,0,h.z).distanceTo(new THREE.Vector3(disc.position.x,0,disc.position.z));
+    if(distHole<1){ // reached hole
+      totalScore += throws;
+      currentHole++;
+      if(currentHole>=holes.length){ alert('Game Over! Total Score: '+totalScore); currentHole=0; totalScore=0; }
+      disc.position.set(0,0.1,0); velocity.set(0,0,0); throws=0; throwing=false;
+    }
+  }
+
+  // Camera follows disc
+  camera.position.x = disc.position.x - velocity.x*2;
+  camera.position.z = disc.position.z + 20;
+  camera.position.y = 5;
+  camera.lookAt(disc.position);
+
+  document.getElementById('info').innerText = 
+    `Hole: ${currentHole+1}/${holes.length} | Throws: ${throws} | Score: ${totalScore} | Par: ${holes[currentHole].par} | Distance: ${holes[currentHole].distance}m | Disc: ${discName} | Throw: ${throwType}`;
+
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>
