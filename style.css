@@ -1,0 +1,5 @@
+body { font-family: sans-serif; background:#58b368; color:white; text-align:center; }
+h1,h2 { margin-top:20px; }
+ul { list-style:none; padding:0; }
+li { margin:10px 0; font-size:18px; }
+a { color:yellow; text-decoration:underline; font-weight:bold; }
